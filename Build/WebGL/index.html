@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Classic Vegas Slot Machine - Unity WebGL Build</title>
+  <title>Vegas Classic Slot Machine - Unity WebGL Build</title>
+  <link rel="icon" type="image/png" href="favicon.ico">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body {
-      background: #0d0f18;
+      background: #0a0c14;
       color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       display: flex;
@@ -34,22 +35,23 @@
       top: 0; left: 0;
       width: 100%; height: 100%;
       display: block;
+      cursor: default;
     }
     /* Overlay HUD */
     .hud-panel {
       position: absolute;
-      bottom: 24px;
+      bottom: 20px;
       left: 50%;
       transform: translateX(-50%);
-      width: 680px;
+      width: 720px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      background: rgba(20, 24, 38, 0.88);
+      background: rgba(18, 22, 36, 0.92);
       border: 2px solid #f6c84c;
-      border-radius: 16px;
-      padding: 10px 20px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.7), inset 0 1px 2px rgba(255,255,255,0.2);
+      border-radius: 18px;
+      padding: 10px 22px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.8), inset 0 1px 2px rgba(255,255,255,0.25);
       z-index: 10;
     }
     .hud-stat {
@@ -108,7 +110,7 @@
       cursor: not-allowed;
     }
     .btn-spin {
-      padding: 10px 28px;
+      padding: 10px 32px;
       font-size: 18px;
       font-weight: 900;
       letter-spacing: 1.5px;
@@ -123,7 +125,7 @@
     }
     .btn-spin:hover:not(:disabled) {
       transform: scale(1.06);
-      box-shadow: 0 6px 20px rgba(255,180,0,0.9);
+      box-shadow: 0 6px 22px rgba(255,180,0,0.9);
     }
     .btn-spin:active:not(:disabled) {
       transform: scale(0.96);
@@ -135,7 +137,7 @@
       transform: none;
     }
     .btn-secondary {
-      padding: 6px 12px;
+      padding: 7px 14px;
       font-size: 11px;
       font-weight: 700;
       letter-spacing: 1px;
@@ -173,8 +175,8 @@
       letter-spacing: 1px;
       color: #f6c84c;
       text-shadow: 0 2px 4px #000;
-      background: rgba(10, 12, 18, 0.7);
-      padding: 6px 16px;
+      background: rgba(10, 12, 18, 0.75);
+      padding: 6px 18px;
       border-radius: 20px;
       border: 1px solid rgba(246,200,76,0.3);
     }
@@ -234,8 +236,8 @@
       border: 1px solid rgba(92,56,24,0.2);
     }
     .paytable-item img {
-      width: 40px;
-      height: 40px;
+      width: 42px;
+      height: 42px;
       object-fit: contain;
     }
     .paytable-info {
@@ -472,8 +474,7 @@
     const assets = {};
     const assetNames = [
       'bg_gradient.png', 'slot-machine1.png', 'slot-machine2.png',
-      'slot-machine3.png', 'slot-machine4.png', 'slot-machine5.png',
-      'slot_machine_Middle_box.png',
+      'slot-machine3.png', 'slot-machine4.png',
       'slot-symbol1.png', 'slot-symbol2.png', 'slot-symbol3.png', 'slot-symbol4.png'
     ];
 
@@ -529,20 +530,15 @@
       particles: []
     };
 
-    // 3 Reels setup
-    // Center window in 960x640:
-    // Slot machine image is 816x624. Cutout window is (229, 246, 597, 456). Width = 368, Height = 210.
-    // Machine center on canvas is x: 480, y: 310.
-    // Window bounds on canvas: x: 297, y: 208, w: 366, h: 210.
-    const REEL_CONFIG = {
-      windowX: 297,
-      windowY: 208,
-      windowW: 366,
-      windowH: 210,
-      reelWidth: 122,
-      symbolH: 96,
-      spacing: 110
-    };
+    // Exact geometric windows on canvas (Machine is at x:72, y:8)
+    const REEL_WINDOWS = [
+      { x: 301, y: 254, w: 108, h: 210, centerX: 355 },
+      { x: 431, y: 254, w: 108, h: 210, centerX: 485 },
+      { x: 561, y: 254, w: 108, h: 210, centerX: 615 }
+    ];
+    const CENTER_Y = 359;
+    const SPACING = 100;
+    const SYMBOL_SIZE = 86;
 
     class Reel {
       constructor(index) {
@@ -562,7 +558,7 @@
         this.spinning = true;
         this.stopping = false;
         this.speed = 0;
-        this.pullback = 20; // Anticipation jerk upwards
+        this.pullback = 18; // Quick anticipation jerk upwards
         this.bounceProgress = 1;
       }
 
@@ -579,11 +575,11 @@
 
         if (this.spinning) {
           if (!this.stopping) {
-            this.speed = Math.min(this.maxSpeed, this.speed + dt * 6000);
+            this.speed = Math.min(this.maxSpeed, this.speed + dt * 6500);
           } else {
             // Deceleration phase
-            this.speed = Math.max(400, this.speed - dt * 2500);
-            if (this.speed <= 600) {
+            this.speed = Math.max(350, this.speed - dt * 2600);
+            if (this.speed <= 500) {
               // Snap target into center
               this.symbols[2] = this.targetSymbol;
               this.spinning = false;
@@ -597,8 +593,8 @@
           }
 
           this.offsetY += this.speed * dt;
-          if (this.offsetY >= REEL_CONFIG.spacing) {
-            this.offsetY -= REEL_CONFIG.spacing;
+          if (this.offsetY >= SPACING) {
+            this.offsetY -= SPACING;
             this.symbols.pop();
             this.symbols.unshift(getCryptoRandomWeighted());
             sound.play('reel_tick.wav', 1.0, 0.15);
@@ -606,46 +602,73 @@
         }
 
         if (this.bounceProgress < 1) {
-          this.bounceProgress += dt * 3.5;
+          this.bounceProgress += dt * 3.8;
           if (this.bounceProgress >= 1) {
             this.bounceProgress = 1;
             this.offsetY = 0;
           } else {
             // Dampened spring bounce
-            this.offsetY = -18 * Math.sin(this.bounceProgress * Math.PI) * (1 - this.bounceProgress);
+            this.offsetY = -16 * Math.sin(this.bounceProgress * Math.PI) * (1 - this.bounceProgress);
           }
         }
       }
 
       draw(ctx) {
-        const x = REEL_CONFIG.windowX + this.index * REEL_CONFIG.reelWidth;
-        const centerX = x + REEL_CONFIG.reelWidth / 2;
-        const centerY = REEL_CONFIG.windowY + REEL_CONFIG.windowH / 2;
+        const win = REEL_WINDOWS[this.index];
 
         ctx.save();
-        // Clip to reel column
+        // Clip strictly inside the reel window cutout
         ctx.beginPath();
-        ctx.rect(x + 5, REEL_CONFIG.windowY, REEL_CONFIG.reelWidth - 10, REEL_CONFIG.windowH);
+        ctx.rect(win.x, win.y, win.w, win.h);
         ctx.clip();
 
-        // Draw 5 symbols relative to center
+        // High-speed motion blur streaks during fast spin
+        if (this.spinning && this.speed > 800) {
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+          ctx.fillRect(win.x, win.y, win.w, win.h);
+
+          // Motion lines
+          ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+          ctx.lineWidth = 2;
+          for (let l = 0; l < 4; l++) {
+            const lx = win.x + 20 + l * 22;
+            ctx.beginPath();
+            ctx.moveTo(lx, win.y);
+            ctx.lineTo(lx, win.y + win.h);
+            ctx.stroke();
+          }
+        }
+
+        // Draw symbols
         for (let i = 0; i < this.symbols.length; i++) {
           const sym = this.symbols[i];
           const img = assets[sym.sprite];
           if (!img) continue;
 
-          const slotOffset = (i - 2) * REEL_CONFIG.spacing;
-          const y = centerY + slotOffset + (this.offsetY - this.pullback);
+          const slotOffset = (i - 2) * SPACING;
+          const y = CENTER_Y + slotOffset + (this.offsetY - this.pullback);
 
-          // Center symbol win pulse
+          // Center symbol win pulse & golden glow
           let scale = 1.0;
           if (i === 2 && state.winningReels[this.index]) {
-            scale = 1.0 + 0.12 * Math.sin(Date.now() * 0.008);
-          }
+            scale = 1.0 + 0.14 * Math.sin(Date.now() * 0.01);
 
-          const drawW = 90 * scale;
-          const drawH = 90 * scale;
-          ctx.drawImage(img, centerX - drawW / 2, y - drawH / 2, drawW, drawH);
+            ctx.save();
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 24;
+            const drawW = SYMBOL_SIZE * scale;
+            const drawH = SYMBOL_SIZE * scale;
+            ctx.drawImage(img, win.centerX - drawW / 2, y - drawH / 2, drawW, drawH);
+            ctx.restore();
+          } else {
+            // Drop shadow for high-contrast visibility
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+            ctx.shadowBlur = 6;
+            ctx.shadowOffsetY = 3;
+            ctx.drawImage(img, win.centerX - SYMBOL_SIZE / 2, y - SYMBOL_SIZE / 2, SYMBOL_SIZE, SYMBOL_SIZE);
+            ctx.restore();
+          }
         }
         ctx.restore();
       }
@@ -654,14 +677,14 @@
     const reels = [new Reel(0), new Reel(1), new Reel(2)];
 
     // --- Particle System for Celebrations ---
-    function spawnWinParticles(count = 60) {
+    function spawnWinParticles(count = 70) {
       const colors = ['#f6c84c', '#ff5533', '#ffffff', '#4ef037', '#ffbb00'];
       for (let i = 0; i < count; i++) {
         state.particles.push({
-          x: 480 + (Math.random() - 0.5) * 200,
-          y: 310 + (Math.random() - 0.5) * 50,
-          vx: (Math.random() - 0.5) * 450,
-          vy: -150 - Math.random() * 350,
+          x: 485 + (Math.random() - 0.5) * 250,
+          y: 350 + (Math.random() - 0.5) * 50,
+          vx: (Math.random() - 0.5) * 480,
+          vy: -180 - Math.random() * 380,
           size: 4 + Math.random() * 6,
           color: colors[Math.floor(Math.random() * colors.length)],
           alpha: 1,
@@ -675,7 +698,7 @@
         const p = state.particles[i];
         p.x += p.vx * dt;
         p.y += p.vy * dt;
-        p.vy += 600 * dt; // Gravity
+        p.vy += 650 * dt; // Gravity
         p.alpha -= p.decay * dt;
         if (p.alpha <= 0) state.particles.splice(i, 1);
       }
@@ -702,39 +725,35 @@
       const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
-      // Clear
+      // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 1. Draw Slot Machine Body Base
       const machineX = 72;
       const machineY = 8;
+
+      // 1. Draw Slot Machine Chassis Base
       if (assets['slot-machine1.png']) {
         ctx.drawImage(assets['slot-machine1.png'], machineX, machineY, 816, 624);
       }
 
-      // 2. Update and Draw Reels
+      // 2. Update and Draw Reels (symbols are drawn directly onto the machine windows)
       reels.forEach(r => {
         r.update(dt);
         r.draw(ctx);
       });
 
-      // 3. Draw Reel Machine Front Window Frame (transparent cutout)
+      // 3. Draw Reel Machine Front Window Frame (transparent cutout ensures crisp bezels)
       if (assets['slot-machine4.png']) {
         ctx.drawImage(assets['slot-machine4.png'], machineX, machineY, 816, 624);
       }
 
-      // 4. Draw Glass Overlay / Reflection
-      if (assets['slot-machine5.png']) {
-        ctx.drawImage(assets['slot-machine5.png'], machineX, machineY, 816, 624);
-      }
-
-      // 5. Draw Interactive Lever
+      // 4. Draw Interactive Mechanical Lever
       const leverImg = state.leverDown ? assets['slot-machine3.png'] : assets['slot-machine2.png'];
       if (leverImg) {
         ctx.drawImage(leverImg, machineX, machineY, 816, 624);
       }
 
-      // 6. Draw particles
+      // 5. Draw particles
       updateParticles(dt);
       drawParticles(ctx);
 
@@ -779,11 +798,11 @@
         getCryptoRandomWeighted()
       ];
 
-      // Start all reels
+      // Start all reels spinning
       sound.startSpinLoop();
       reels.forEach(r => r.startSpin());
 
-      // Staggered stop timing:
+      // Staggered reel stop timing:
       // Reel 0 stops at 1.3s
       setTimeout(() => {
         reels[0].stopAt(outcomes[0]);
@@ -862,12 +881,12 @@
       else {
         const cherryCount = [s0, s1, s2].filter(s => s.name === 'Cherry').length;
         if (cherryCount === 2) {
-          const totalWon = 2 * multiplier * bet;
+          const totalWon = 1 * multiplier * bet;
           state.lastWin = totalWon;
           state.credits += totalWon;
           sound.play('win_normal.wav');
           sound.play('coin_payout.wav');
-          updateStatus(`Cherry Pair Consolation Win! (${2 * multiplier}x)`);
+          updateStatus(`Cherry Pair Consolation Win! (${1 * multiplier}x)`);
           animateWinCounter(totalWon);
         } else {
           state.lastWin = 0;
@@ -953,7 +972,7 @@
         triggerSpin();
       });
 
-      // Canvas click on lever handle (bounds around x: 740..810, y: 290..560)
+      // Canvas click on lever handle (bounds around x: 745..830, y: 280..570)
       canvas.addEventListener('click', (e) => {
         const rect = canvas.getBoundingClientRect();
         const scaleX = canvas.width / rect.width;
@@ -962,7 +981,7 @@
         const clickY = (e.clientY - rect.top) * scaleY;
 
         // Lever area
-        if (clickX >= 740 && clickX <= 820 && clickY >= 280 && clickY <= 560) {
+        if (clickX >= 745 && clickX <= 835 && clickY >= 280 && clickY <= 570) {
           triggerSpin();
         }
       });
