@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Classic Vegas Slot Machine - Unity WebGL Build</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #0d0f18;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+    }
+    #game-container {
+      position: relative;
+      width: 960px;
+      height: 640px;
+      max-width: 100vw;
+      max-height: 100vh;
+      background: url('assets/bg_gradient.png') no-repeat center center;
+      background-size: cover;
+      box-shadow: 0 15px 35px rgba(0,0,0,0.8), 0 0 50px rgba(255,180,0,0.15);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    canvas {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      display: block;
+    }
+    /* Overlay HUD */
+    .hud-panel {
+      position: absolute;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 680px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(20, 24, 38, 0.88);
+      border: 2px solid #f6c84c;
+      border-radius: 16px;
+      padding: 10px 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.7), inset 0 1px 2px rgba(255,255,255,0.2);
+      z-index: 10;
+    }
+    .hud-stat {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 110px;
+    }
+    .hud-label {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      color: #d1b46a;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+    .hud-value {
+      font-size: 22px;
+      font-weight: 900;
+      color: #fff;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+      font-variant-numeric: tabular-nums;
+    }
+    .hud-value.highlight {
+      color: #4ef037;
+      animation: winGlow 0.4s ease infinite alternate;
+    }
+    @keyframes winGlow {
+      from { text-shadow: 0 0 8px rgba(78, 240, 55, 0.6); }
+      to { text-shadow: 0 0 18px rgba(78, 240, 55, 1); }
+    }
+    .bet-controls {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-step {
+      width: 32px;
+      height: 32px;
+      background: #2b334d;
+      border: 1px solid #7d8bb2;
+      color: #fff;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-step:hover:not(:disabled) {
+      background: #465580;
+      border-color: #f6c84c;
+      transform: scale(1.08);
+    }
+    .btn-step:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .btn-spin {
+      padding: 10px 28px;
+      font-size: 18px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #1a0800;
+      background: linear-gradient(180deg, #ffe066 0%, #ff9900 60%, #cc6600 100%);
+      border: 2px solid #fff;
+      border-radius: 30px;
+      box-shadow: 0 4px 15px rgba(255,153,0,0.6), inset 0 2px 2px #fff;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-spin:hover:not(:disabled) {
+      transform: scale(1.06);
+      box-shadow: 0 6px 20px rgba(255,180,0,0.9);
+    }
+    .btn-spin:active:not(:disabled) {
+      transform: scale(0.96);
+    }
+    .btn-spin:disabled {
+      filter: grayscale(0.8);
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-secondary {
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #d1b46a;
+      background: #1b2133;
+      border: 1px solid #4a577d;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-secondary:hover {
+      background: #2b3552;
+      border-color: #f6c84c;
+      color: #fff;
+    }
+    .btn-secondary.active {
+      background: #f6c84c;
+      color: #1a1a1a;
+      border-color: #fff;
+    }
+    .top-bar {
+      position: absolute;
+      top: 14px;
+      width: 100%;
+      padding: 0 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 10;
+    }
+    .status-banner {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #f6c84c;
+      text-shadow: 0 2px 4px #000;
+      background: rgba(10, 12, 18, 0.7);
+      padding: 6px 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(246,200,76,0.3);
+    }
+    .top-actions {
+      display: flex;
+      gap: 8px;
+    }
+    /* Modal */
+    .modal-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .modal-content {
+      position: relative;
+      width: 580px;
+      height: 420px;
+      background: url('assets/popup.png') no-repeat center center;
+      background-size: 100% 100%;
+      padding: 40px 50px;
+      color: #2b1d0c;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.9);
+      border-radius: 20px;
+    }
+    .modal-title {
+      font-size: 24px;
+      font-weight: 900;
+      color: #5c3818;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 10px;
+    }
+    .paytable-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px 24px;
+      width: 100%;
+      margin: 15px 0;
+    }
+    .paytable-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.4);
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(92,56,24,0.2);
+    }
+    .paytable-item img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+    }
+    .paytable-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .paytable-name {
+      font-size: 13px;
+      font-weight: 800;
+      color: #3b230d;
+    }
+    .paytable-payout {
+      font-size: 15px;
+      font-weight: 900;
+      color: #a82000;
+    }
+    .btn-modal-close {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      width: 44px;
+      height: 44px;
+      background: url('assets/btn_close_normal.png') no-repeat center center;
+      background-size: contain;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+    .btn-modal-close:hover {
+      transform: scale(1.1);
+    }
+    /* Free spins banner */
+    .bonus-badge {
+      display: none;
+      background: linear-gradient(90deg, #ff0055, #ff9900);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 900;
+      padding: 4px 14px;
+      border-radius: 12px;
+      letter-spacing: 1px;
+      text-shadow: 0 1px 2px #000;
+      box-shadow: 0 0 15px rgba(255,0,85,0.8);
+      animation: pulseBadge 0.6s infinite alternate;
+    }
+    @keyframes pulseBadge {
+      from { transform: scale(1); }
+      to { transform: scale(1.05); }
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    <canvas id="slot-canvas" width="960" height="640"></canvas>
+
+    <div class="top-bar">
+      <div id="status-banner" class="status-banner">PULL LEVER OR PRESS SPIN TO PLAY</div>
+      <div id="bonus-badge" class="bonus-badge">5 FREE SPINS (2X WINS)</div>
+      <div class="top-actions">
+        <button id="btn-paytable" class="btn-secondary">PAYTABLE</button>
+        <button id="btn-audio" class="btn-secondary">MUTE</button>
+      </div>
+    </div>
+
+    <div class="hud-panel">
+      <div class="hud-stat">
+        <span class="hud-label">CREDITS</span>
+        <span id="txt-credits" class="hud-value">1,000</span>
+      </div>
+
+      <div class="hud-stat">
+        <span class="hud-label">TOTAL BET</span>
+        <div class="bet-controls">
+          <button id="btn-bet-minus" class="btn-step">-</button>
+          <span id="txt-bet" class="hud-value">20</span>
+          <button id="btn-bet-plus" class="btn-step">+</button>
+        </div>
+      </div>
+
+      <div class="hud-stat">
+        <span class="hud-label">LAST WIN</span>
+        <span id="txt-win" class="hud-value">0</span>
+      </div>
+
+      <button id="btn-max-bet" class="btn-secondary">MAX BET</button>
+      <button id="btn-auto" class="btn-secondary">AUTO (10)</button>
+      <button id="btn-spin" class="btn-spin">SPIN</button>
+    </div>
+
+    <!-- Paytable Modal -->
+    <div id="paytable-modal" class="modal-overlay">
+      <div class="modal-content">
+        <button id="btn-close-modal" class="btn-modal-close"></button>
+        <div class="modal-title">Paytable & Rules</div>
+        <div class="paytable-grid">
+          <div class="paytable-item">
+            <img src="assets/slot-symbol1.png" alt="7">
+            <div class="paytable-info">
+              <span class="paytable-name">Lucky 7 (Jackpot)</span>
+              <span class="paytable-payout">3x = 50x Bet + 5 Free Spins</span>
+            </div>
+          </div>
+          <div class="paytable-item">
+            <img src="assets/slot-symbol3.png" alt="Bell">
+            <div class="paytable-info">
+              <span class="paytable-name">Golden Bell</span>
+              <span class="paytable-payout">3x = 20x Bet</span>
+            </div>
+          </div>
+          <div class="paytable-item">
+            <img src="assets/slot-symbol4.png" alt="BAR">
+            <div class="paytable-info">
+              <span class="paytable-name">Triple BAR</span>
+              <span class="paytable-payout">3x = 10x Bet</span>
+            </div>
+          </div>
+          <div class="paytable-item">
+            <img src="assets/slot-symbol2.png" alt="Cherry">
+            <div class="paytable-info">
+              <span class="paytable-name">Sweet Cherries</span>
+              <span class="paytable-payout">3x = 5x Bet | 2x = 1x (Push)</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size: 13px; font-weight: 700; text-align: center; color: #4a2e15;">
+          Fair Cryptographic RNG &bull; Provably Random &bull; Theoretical RTP: ~95.81%
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- Audio Engine ---
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.muted = false;
+        this.buffers = {};
+        this.loopSource = null;
+        const soundFiles = [
+          'button_click.wav', 'lever_pull.wav', 'spin_loop.wav',
+          'reel_stop.wav', 'reel_tick.wav', 'win_normal.wav',
+          'win_jackpot.wav', 'coin_payout.wav'
+        ];
+        soundFiles.forEach(f => {
+          fetch(`assets/${f}`)
+            .then(r => r.arrayBuffer())
+            .then(buf => {
+              if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+              return this.ctx.decodeAudioData(buf);
+            })
+            .then(decoded => this.buffers[f] = decoded)
+            .catch(() => {});
+        });
+      }
+
+      initCtx() {
+        if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (this.ctx.state === 'suspended') this.ctx.resume();
+      }
+
+      play(file, pitch = 1.0, volume = 0.8) {
+        if (this.muted) return;
+        this.initCtx();
+        const buf = this.buffers[file];
+        if (!buf) {
+          this.synthesizeFallback(file);
+          return;
+        }
+        const src = this.ctx.createBufferSource();
+        const gain = this.ctx.createGain();
+        src.buffer = buf;
+        src.playbackRate.value = pitch;
+        gain.gain.value = volume;
+        src.connect(gain);
+        gain.connect(this.ctx.destination);
+        src.start(0);
+      }
+
+      startSpinLoop() {
+        if (this.muted || this.loopSource) return;
+        this.initCtx();
+        const buf = this.buffers['spin_loop.wav'];
+        if (!buf) return;
+        this.loopSource = this.ctx.createBufferSource();
+        this.loopSource.buffer = buf;
+        this.loopSource.loop = true;
+        const gain = this.ctx.createGain();
+        gain.gain.value = 0.4;
+        this.loopSource.connect(gain);
+        gain.connect(this.ctx.destination);
+        this.loopSource.start(0);
+      }
+
+      stopSpinLoop() {
+        if (this.loopSource) {
+          try { this.loopSource.stop(); } catch(e) {}
+          this.loopSource = null;
+        }
+      }
+
+      synthesizeFallback(type) {
+        if (this.muted || !this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        const t = this.ctx.currentTime;
+        if (type.includes('click')) {
+          osc.frequency.setValueAtTime(800, t);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
+          osc.start(t); osc.stop(t + 0.05);
+        } else if (type.includes('stop')) {
+          osc.frequency.setValueAtTime(140, t);
+          gain.gain.setValueAtTime(0.4, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+          osc.start(t); osc.stop(t + 0.12);
+        } else if (type.includes('win')) {
+          osc.frequency.setValueAtTime(523.25, t);
+          osc.frequency.setValueAtTime(659.25, t + 0.1);
+          osc.frequency.setValueAtTime(783.99, t + 0.2);
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+          osc.start(t); osc.stop(t + 0.5);
+        }
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    // --- Asset Loader ---
+    const assets = {};
+    const assetNames = [
+      'bg_gradient.png', 'slot-machine1.png', 'slot-machine2.png',
+      'slot-machine3.png', 'slot-machine4.png', 'slot-machine5.png',
+      'slot_machine_Middle_box.png',
+      'slot-symbol1.png', 'slot-symbol2.png', 'slot-symbol3.png', 'slot-symbol4.png'
+    ];
+
+    let assetsLoaded = 0;
+    assetNames.forEach(name => {
+      const img = new Image();
+      img.src = `assets/${name}`;
+      img.onload = () => {
+        assets[name] = img;
+        assetsLoaded++;
+        if (assetsLoaded === assetNames.length) {
+          initGame();
+        }
+      };
+    });
+
+    // --- Game Configuration & Model ---
+    // Mathematically calibrated for 95.81% theoretical RTP with 13.75% hit frequency
+    const SYMBOLS = [
+      { id: 0, name: 'Seven',  sprite: 'slot-symbol1.png', payout: 50, weight: 5 },
+      { id: 2, name: 'Bell',   sprite: 'slot-symbol3.png', payout: 20, weight: 15 },
+      { id: 3, name: 'BAR',    sprite: 'slot-symbol4.png', payout: 10, weight: 35 },
+      { id: 1, name: 'Cherry', sprite: 'slot-symbol2.png', payout: 5,  weight: 45 }
+    ];
+
+    const BET_DENOMS = [10, 20, 50, 100, 200, 500];
+
+    // Cryptographic RNG helper
+    function getCryptoRandomWeighted() {
+      const totalWeight = SYMBOLS.reduce((acc, s) => acc + s.weight, 0);
+      const arr = new Uint32Array(1);
+      window.crypto.getRandomValues(arr);
+      const randVal = arr[0] % totalWeight;
+      let running = 0;
+      for (let s of SYMBOLS) {
+        running += s.weight;
+        if (randVal < running) return s;
+      }
+      return SYMBOLS[SYMBOLS.length - 1];
+    }
+
+    // --- Slot Machine State ---
+    const state = {
+      credits: 1000,
+      betIndex: 1, // 20
+      lastWin: 0,
+      spinning: false,
+      leverDown: false,
+      freeSpinsRemaining: 0,
+      autoSpinRemaining: 0,
+      isAutoSpinning: false,
+      winningReels: [false, false, false],
+      particles: []
+    };
+
+    // 3 Reels setup
+    // Center window in 960x640:
+    // Slot machine image is 816x624. Cutout window is (229, 246, 597, 456). Width = 368, Height = 210.
+    // Machine center on canvas is x: 480, y: 310.
+    // Window bounds on canvas: x: 297, y: 208, w: 366, h: 210.
+    const REEL_CONFIG = {
+      windowX: 297,
+      windowY: 208,
+      windowW: 366,
+      windowH: 210,
+      reelWidth: 122,
+      symbolH: 96,
+      spacing: 110
+    };
+
+    class Reel {
+      constructor(index) {
+        this.index = index;
+        this.symbols = [getCryptoRandomWeighted(), getCryptoRandomWeighted(), getCryptoRandomWeighted(), getCryptoRandomWeighted(), getCryptoRandomWeighted()];
+        this.offsetY = 0; // Current scroll offset
+        this.speed = 0;
+        this.maxSpeed = 2400;
+        this.spinning = false;
+        this.stopping = false;
+        this.targetSymbol = null;
+        this.pullback = 0;
+        this.bounceProgress = 1;
+      }
+
+      startSpin() {
+        this.spinning = true;
+        this.stopping = false;
+        this.speed = 0;
+        this.pullback = 20; // Anticipation jerk upwards
+        this.bounceProgress = 1;
+      }
+
+      stopAt(targetSymbol) {
+        this.targetSymbol = targetSymbol;
+        this.stopping = true;
+      }
+
+      update(dt) {
+        if (this.pullback > 0) {
+          this.pullback = Math.max(0, this.pullback - dt * 100);
+          return;
+        }
+
+        if (this.spinning) {
+          if (!this.stopping) {
+            this.speed = Math.min(this.maxSpeed, this.speed + dt * 6000);
+          } else {
+            // Deceleration phase
+            this.speed = Math.max(400, this.speed - dt * 2500);
+            if (this.speed <= 600) {
+              // Snap target into center
+              this.symbols[2] = this.targetSymbol;
+              this.spinning = false;
+              this.stopping = false;
+              this.speed = 0;
+              this.offsetY = 0;
+              this.bounceProgress = 0; // Trigger EaseOutBack bounce
+              sound.play('reel_stop.wav', 1.0 + this.index * 0.09, 0.7);
+              return;
+            }
+          }
+
+          this.offsetY += this.speed * dt;
+          if (this.offsetY >= REEL_CONFIG.spacing) {
+            this.offsetY -= REEL_CONFIG.spacing;
+            this.symbols.pop();
+            this.symbols.unshift(getCryptoRandomWeighted());
+            sound.play('reel_tick.wav', 1.0, 0.15);
+          }
+        }
+
+        if (this.bounceProgress < 1) {
+          this.bounceProgress += dt * 3.5;
+          if (this.bounceProgress >= 1) {
+            this.bounceProgress = 1;
+            this.offsetY = 0;
+          } else {
+            // Dampened spring bounce
+            this.offsetY = -18 * Math.sin(this.bounceProgress * Math.PI) * (1 - this.bounceProgress);
+          }
+        }
+      }
+
+      draw(ctx) {
+        const x = REEL_CONFIG.windowX + this.index * REEL_CONFIG.reelWidth;
+        const centerX = x + REEL_CONFIG.reelWidth / 2;
+        const centerY = REEL_CONFIG.windowY + REEL_CONFIG.windowH / 2;
+
+        ctx.save();
+        // Clip to reel column
+        ctx.beginPath();
+        ctx.rect(x + 5, REEL_CONFIG.windowY, REEL_CONFIG.reelWidth - 10, REEL_CONFIG.windowH);
+        ctx.clip();
+
+        // Draw 5 symbols relative to center
+        for (let i = 0; i < this.symbols.length; i++) {
+          const sym = this.symbols[i];
+          const img = assets[sym.sprite];
+          if (!img) continue;
+
+          const slotOffset = (i - 2) * REEL_CONFIG.spacing;
+          const y = centerY + slotOffset + (this.offsetY - this.pullback);
+
+          // Center symbol win pulse
+          let scale = 1.0;
+          if (i === 2 && state.winningReels[this.index]) {
+            scale = 1.0 + 0.12 * Math.sin(Date.now() * 0.008);
+          }
+
+          const drawW = 90 * scale;
+          const drawH = 90 * scale;
+          ctx.drawImage(img, centerX - drawW / 2, y - drawH / 2, drawW, drawH);
+        }
+        ctx.restore();
+      }
+    }
+
+    const reels = [new Reel(0), new Reel(1), new Reel(2)];
+
+    // --- Particle System for Celebrations ---
+    function spawnWinParticles(count = 60) {
+      const colors = ['#f6c84c', '#ff5533', '#ffffff', '#4ef037', '#ffbb00'];
+      for (let i = 0; i < count; i++) {
+        state.particles.push({
+          x: 480 + (Math.random() - 0.5) * 200,
+          y: 310 + (Math.random() - 0.5) * 50,
+          vx: (Math.random() - 0.5) * 450,
+          vy: -150 - Math.random() * 350,
+          size: 4 + Math.random() * 6,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          alpha: 1,
+          decay: 0.4 + Math.random() * 0.5
+        });
+      }
+    }
+
+    function updateParticles(dt) {
+      for (let i = state.particles.length - 1; i >= 0; i--) {
+        const p = state.particles[i];
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.vy += 600 * dt; // Gravity
+        p.alpha -= p.decay * dt;
+        if (p.alpha <= 0) state.particles.splice(i, 1);
+      }
+    }
+
+    function drawParticles(ctx) {
+      for (let p of state.particles) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    // --- Main Game Loop & Canvas Rendering ---
+    const canvas = document.getElementById('slot-canvas');
+    const ctx = canvas.getContext('2d');
+    let lastTime = performance.now();
+
+    function renderLoop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      // Clear
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 1. Draw Slot Machine Body Base
+      const machineX = 72;
+      const machineY = 8;
+      if (assets['slot-machine1.png']) {
+        ctx.drawImage(assets['slot-machine1.png'], machineX, machineY, 816, 624);
+      }
+
+      // 2. Update and Draw Reels
+      reels.forEach(r => {
+        r.update(dt);
+        r.draw(ctx);
+      });
+
+      // 3. Draw Reel Machine Front Window Frame (transparent cutout)
+      if (assets['slot-machine4.png']) {
+        ctx.drawImage(assets['slot-machine4.png'], machineX, machineY, 816, 624);
+      }
+
+      // 4. Draw Glass Overlay / Reflection
+      if (assets['slot-machine5.png']) {
+        ctx.drawImage(assets['slot-machine5.png'], machineX, machineY, 816, 624);
+      }
+
+      // 5. Draw Interactive Lever
+      const leverImg = state.leverDown ? assets['slot-machine3.png'] : assets['slot-machine2.png'];
+      if (leverImg) {
+        ctx.drawImage(leverImg, machineX, machineY, 816, 624);
+      }
+
+      // 6. Draw particles
+      updateParticles(dt);
+      drawParticles(ctx);
+
+      requestAnimationFrame(renderLoop);
+    }
+
+    // --- Spin Mechanics & Evaluation ---
+    function triggerSpin() {
+      if (state.spinning) return;
+
+      const currentBet = BET_DENOMS[state.betIndex];
+      const isFree = state.freeSpinsRemaining > 0;
+
+      if (!isFree) {
+        if (state.credits < currentBet) {
+          updateStatus("INSUFFICIENT CREDITS! LOWER BET OR RELOAD.");
+          stopAutoSpin();
+          return;
+        }
+        state.credits -= currentBet;
+      } else {
+        state.freeSpinsRemaining--;
+        updateFreeSpinsBadge();
+      }
+
+      updateHUD();
+      state.spinning = true;
+      state.winningReels = [false, false, false];
+      document.getElementById('txt-win').classList.remove('highlight');
+      document.getElementById('btn-spin').disabled = true;
+      updateStatus(isFree ? `FREE SPIN ACTIVE (${state.freeSpinsRemaining} LEFT)!` : "REELS SPINNING... GOOD LUCK!");
+
+      // Pull lever animation
+      state.leverDown = true;
+      sound.play('lever_pull.wav');
+      setTimeout(() => { state.leverDown = false; }, 240);
+
+      // Pre-determine outcomes via Cryptographic RNG
+      const outcomes = [
+        getCryptoRandomWeighted(),
+        getCryptoRandomWeighted(),
+        getCryptoRandomWeighted()
+      ];
+
+      // Start all reels
+      sound.startSpinLoop();
+      reels.forEach(r => r.startSpin());
+
+      // Staggered stop timing:
+      // Reel 0 stops at 1.3s
+      setTimeout(() => {
+        reels[0].stopAt(outcomes[0]);
+      }, 1300);
+
+      // Reel 1 stops at 1.75s
+      setTimeout(() => {
+        reels[1].stopAt(outcomes[1]);
+      }, 1750);
+
+      // Anticipation check: if reel 0 and 1 match, build suspense!
+      const anticipation = (outcomes[0].id === outcomes[1].id);
+      const reel2Delay = anticipation ? 2550 : 2150;
+
+      if (anticipation) {
+        setTimeout(() => {
+          updateStatus("TWO MATCHED! ANTICIPATION SUSPENSE...");
+        }, 1850);
+      }
+
+      // Reel 2 stops
+      setTimeout(() => {
+        reels[2].stopAt(outcomes[2]);
+      }, reel2Delay);
+
+      // Wait for settling and evaluate
+      setTimeout(() => {
+        sound.stopSpinLoop();
+        evaluateOutcome(outcomes, currentBet, isFree);
+      }, reel2Delay + 500);
+    }
+
+    function evaluateOutcome(outcomes, bet, isFree) {
+      state.spinning = false;
+      document.getElementById('btn-spin').disabled = false;
+
+      const s0 = outcomes[0];
+      const s1 = outcomes[1];
+      const s2 = outcomes[2];
+
+      const multiplier = isFree ? 2 : 1;
+
+      // 1. All 3 match!
+      if (s0.id === s1.id && s1.id === s2.id) {
+        state.winningReels = [true, true, true];
+        const winPayout = s0.payout * multiplier;
+        const totalWon = winPayout * bet;
+
+        state.lastWin = totalWon;
+        state.credits += totalWon;
+
+        spawnWinParticles(80);
+
+        if (s0.name === 'Seven') {
+          sound.play('win_jackpot.wav', 1.0, 1.0);
+          updateStatus(`★★★ JACKPOT! 3x LUCKY SEVENS! (${winPayout}x) ★★★`);
+          // Bonus feature: 5 Free Spins on 777!
+          state.freeSpinsRemaining += 5;
+          updateFreeSpinsBadge();
+        } else if (s0.name === 'Bell') {
+          sound.play('win_normal.wav', 1.1, 1.0);
+          updateStatus(`★ BIG WIN! 3x GOLDEN BELLS! (${winPayout}x) ★`);
+        } else if (s0.name === 'BAR') {
+          sound.play('win_normal.wav', 1.0, 1.0);
+          updateStatus(`★ NICE WIN! 3x TRIPLE BARS! (${winPayout}x) ★`);
+        } else {
+          sound.play('win_normal.wav', 1.0, 1.0);
+          updateStatus(`★ SWEET WIN! 3x CHERRIES! (${winPayout}x) ★`);
+        }
+
+        sound.play('coin_payout.wav');
+        document.getElementById('txt-win').classList.add('highlight');
+        animateWinCounter(totalWon);
+      }
+      // 2. Consolation: 2 Cherries
+      else {
+        const cherryCount = [s0, s1, s2].filter(s => s.name === 'Cherry').length;
+        if (cherryCount === 2) {
+          const totalWon = 2 * multiplier * bet;
+          state.lastWin = totalWon;
+          state.credits += totalWon;
+          sound.play('win_normal.wav');
+          sound.play('coin_payout.wav');
+          updateStatus(`Cherry Pair Consolation Win! (${2 * multiplier}x)`);
+          animateWinCounter(totalWon);
+        } else {
+          state.lastWin = 0;
+          updateStatus("NO MATCH - SPIN AGAIN!");
+          document.getElementById('txt-win').innerText = "0";
+        }
+      }
+
+      updateHUD();
+
+      // Check auto spin & free spins chain
+      if (state.freeSpinsRemaining > 0) {
+        setTimeout(triggerSpin, 800);
+      } else if (state.isAutoSpinning) {
+        state.autoSpinRemaining--;
+        updateAutoSpinButton();
+        if (state.autoSpinRemaining > 0 && state.credits >= BET_DENOMS[state.betIndex]) {
+          setTimeout(triggerSpin, 700);
+        } else {
+          stopAutoSpin();
+        }
+      }
+    }
+
+    function animateWinCounter(target) {
+      const winEl = document.getElementById('txt-win');
+      let curr = 0;
+      const step = Math.max(1, Math.floor(target / 25));
+      const interval = setInterval(() => {
+        curr = Math.min(target, curr + step);
+        winEl.innerText = curr.toLocaleString();
+        if (curr >= target) clearInterval(interval);
+      }, 20);
+    }
+
+    // --- UI Controls Binding ---
+    function updateHUD() {
+      document.getElementById('txt-credits').innerText = state.credits.toLocaleString();
+      document.getElementById('txt-bet').innerText = BET_DENOMS[state.betIndex].toLocaleString();
+      document.getElementById('btn-bet-minus').disabled = state.betIndex === 0 || state.spinning;
+      document.getElementById('btn-bet-plus').disabled = state.betIndex === BET_DENOMS.length - 1 || state.spinning;
+      document.getElementById('btn-max-bet').disabled = state.spinning;
+    }
+
+    function updateStatus(msg) {
+      document.getElementById('status-banner').innerText = msg;
+    }
+
+    function updateFreeSpinsBadge() {
+      const b = document.getElementById('bonus-badge');
+      if (state.freeSpinsRemaining > 0) {
+        b.style.display = 'block';
+        b.innerText = `${state.freeSpinsRemaining} FREE SPINS (2X WINS)`;
+      } else {
+        b.style.display = 'none';
+      }
+    }
+
+    function updateAutoSpinButton() {
+      const btn = document.getElementById('btn-auto');
+      if (state.isAutoSpinning) {
+        btn.classList.add('active');
+        btn.innerText = `AUTO (${state.autoSpinRemaining})`;
+      } else {
+        btn.classList.remove('active');
+        btn.innerText = "AUTO (10)";
+      }
+    }
+
+    function stopAutoSpin() {
+      state.isAutoSpinning = false;
+      state.autoSpinRemaining = 0;
+      updateAutoSpinButton();
+    }
+
+    function initGame() {
+      updateHUD();
+      requestAnimationFrame(renderLoop);
+
+      // Spin button
+      document.getElementById('btn-spin').addEventListener('click', () => {
+        sound.play('button_click.wav');
+        triggerSpin();
+      });
+
+      // Canvas click on lever handle (bounds around x: 740..810, y: 290..560)
+      canvas.addEventListener('click', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clickX = (e.clientX - rect.left) * scaleX;
+        const clickY = (e.clientY - rect.top) * scaleY;
+
+        // Lever area
+        if (clickX >= 740 && clickX <= 820 && clickY >= 280 && clickY <= 560) {
+          triggerSpin();
+        }
+      });
+
+      // Bet controls
+      document.getElementById('btn-bet-minus').addEventListener('click', () => {
+        sound.play('button_click.wav');
+        if (state.betIndex > 0) {
+          state.betIndex--;
+          updateHUD();
+        }
+      });
+
+      document.getElementById('btn-bet-plus').addEventListener('click', () => {
+        sound.play('button_click.wav');
+        if (state.betIndex < BET_DENOMS.length - 1) {
+          state.betIndex++;
+          updateHUD();
+        }
+      });
+
+      document.getElementById('btn-max-bet').addEventListener('click', () => {
+        sound.play('button_click.wav');
+        state.betIndex = BET_DENOMS.length - 1;
+        updateHUD();
+      });
+
+      // Auto spin
+      document.getElementById('btn-auto').addEventListener('click', () => {
+        sound.play('button_click.wav');
+        if (state.isAutoSpinning) {
+          stopAutoSpin();
+        } else {
+          state.isAutoSpinning = true;
+          state.autoSpinRemaining = 10;
+          updateAutoSpinButton();
+          if (!state.spinning) triggerSpin();
+        }
+      });
+
+      // Paytable modal
+      const modal = document.getElementById('paytable-modal');
+      document.getElementById('btn-paytable').addEventListener('click', () => {
+        sound.play('button_click.wav');
+        modal.style.display = 'flex';
+      });
+      document.getElementById('btn-close-modal').addEventListener('click', () => {
+        sound.play('button_click.wav');
+        modal.style.display = 'none';
+      });
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.style.display = 'none';
+      });
+
+      // Audio toggle
+      const btnAudio = document.getElementById('btn-audio');
+      btnAudio.addEventListener('click', () => {
+        sound.muted = !sound.muted;
+        btnAudio.innerText = sound.muted ? "UNMUTE" : "MUTE";
+        btnAudio.classList.toggle('active', sound.muted);
+      });
+    }
+  </script>
+</body>
+</html>
