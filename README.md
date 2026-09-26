@@ -46,6 +46,15 @@ npx serve Build/WebGL
   - Animated Win Counter (numbers roll up dynamically instead of jumping instantly).
 - **Auto-Spin**: 10-spin automated sequence that automatically halts if funds run low or the player toggles it off.
 - **Interactive Paytable Modal**: Custom-styled popup dialog (`popup.png`) detailing symbol multipliers, RTP specifications, and rules.
+- **Keyboard Shortcuts & Accessibility**:
+  - `[SPACE]` : Pull Lever / Spin
+  - `[↑]` / `[→]` : Increase Bet
+  - `[↓]` / `[←]` : Decrease Bet
+  - `[P]` : Toggle Paytable & Rules Modal
+  - `[M]` : Toggle Audio Mute
+  - `[A]` : Toggle Auto-Spin
+  - `[ESC]` : Close Modal
+- **State Persistence**: Bankroll credits, bet level, and audio preferences are saved to `localStorage` / `PlayerPrefs` and automatically restored.
 
 ---
 

@@ -298,8 +298,8 @@
       <div id="status-banner" class="status-banner">PULL LEVER OR PRESS SPIN TO PLAY</div>
       <div id="bonus-badge" class="bonus-badge">5 FREE SPINS (2X WINS)</div>
       <div class="top-actions">
-        <button id="btn-paytable" class="btn-secondary">PAYTABLE</button>
-        <button id="btn-audio" class="btn-secondary">MUTE</button>
+        <button id="btn-paytable" class="btn-secondary" title="Shortcut: P key">PAYTABLE [P]</button>
+        <button id="btn-audio" class="btn-secondary" title="Shortcut: M key">MUTE [M]</button>
       </div>
     </div>
 
@@ -312,9 +312,9 @@
       <div class="hud-stat">
         <span class="hud-label">TOTAL BET</span>
         <div class="bet-controls">
-          <button id="btn-bet-minus" class="btn-step">-</button>
+          <button id="btn-bet-minus" class="btn-step" title="Decrease bet: Down/Left arrow">-</button>
           <span id="txt-bet" class="hud-value">20</span>
-          <button id="btn-bet-plus" class="btn-step">+</button>
+          <button id="btn-bet-plus" class="btn-step" title="Increase bet: Up/Right arrow">+</button>
         </div>
       </div>
 
@@ -324,8 +324,8 @@
       </div>
 
       <button id="btn-max-bet" class="btn-secondary">MAX BET</button>
-      <button id="btn-auto" class="btn-secondary">AUTO (10)</button>
-      <button id="btn-spin" class="btn-spin">SPIN</button>
+      <button id="btn-auto" class="btn-secondary" title="Shortcut: A key">AUTO (10) [A]</button>
+      <button id="btn-spin" class="btn-spin" title="Shortcut: Spacebar">SPIN [SPACE]</button>
     </div>
 
     <!-- Paytable Modal -->
@@ -1040,8 +1040,67 @@
       const btnAudio = document.getElementById('btn-audio');
       btnAudio.addEventListener('click', () => {
         sound.muted = !sound.muted;
-        btnAudio.innerText = sound.muted ? "UNMUTE" : "MUTE";
+        btnAudio.innerText = sound.muted ? "UNMUTE [M]" : "MUTE [M]";
         btnAudio.classList.toggle('active', sound.muted);
+        try { localStorage.setItem('slot_muted', sound.muted ? '1' : '0'); } catch(e) {}
+      });
+
+      // --- LocalStorage State Restoration ---
+      try {
+        const savedCredits = localStorage.getItem('slot_credits');
+        if (savedCredits) state.credits = Math.max(10, parseInt(savedCredits, 10));
+        const savedBet = localStorage.getItem('slot_bet_index');
+        if (savedBet) state.betIndex = Math.min(BET_DENOMS.length - 1, Math.max(0, parseInt(savedBet, 10)));
+        const savedMuted = localStorage.getItem('slot_muted');
+        if (savedMuted === '1') {
+          sound.muted = true;
+          btnAudio.innerText = "UNMUTE [M]";
+          btnAudio.classList.add('active');
+        }
+        updateHUD();
+      } catch(e) {}
+
+      // Save state helper
+      window.addEventListener('beforeunload', () => {
+        try {
+          localStorage.setItem('slot_credits', state.credits.toString());
+          localStorage.setItem('slot_bet_index', state.betIndex.toString());
+        } catch(e) {}
+      });
+
+      // --- Keyboard Shortcuts & Accessibility ---
+      window.addEventListener('keydown', (e) => {
+        // Prevent default browser scrolling on space or arrows
+        if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) {
+          e.preventDefault();
+        }
+
+        if (e.code === 'Space') {
+          if (!state.spinning) triggerSpin();
+        } else if (e.code === 'ArrowUp' || e.code === 'ArrowRight') {
+          if (state.betIndex < BET_DENOMS.length - 1 && !state.spinning) {
+            sound.play('button_click.wav');
+            state.betIndex++;
+            updateHUD();
+            try { localStorage.setItem('slot_bet_index', state.betIndex.toString()); } catch(err) {}
+          }
+        } else if (e.code === 'ArrowDown' || e.code === 'ArrowLeft') {
+          if (state.betIndex > 0 && !state.spinning) {
+            sound.play('button_click.wav');
+            state.betIndex--;
+            updateHUD();
+            try { localStorage.setItem('slot_bet_index', state.betIndex.toString()); } catch(err) {}
+          }
+        } else if (e.code === 'KeyP') {
+          sound.play('button_click.wav');
+          modal.style.display = modal.style.display === 'flex' ? 'none' : 'flex';
+        } else if (e.code === 'KeyM') {
+          btnAudio.click();
+        } else if (e.code === 'KeyA') {
+          document.getElementById('btn-auto').click();
+        } else if (e.code === 'Escape') {
+          modal.style.display = 'none';
+        }
       });
     }
   </script>
