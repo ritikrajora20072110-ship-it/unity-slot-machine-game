@@ -6,7 +6,10 @@ A complete, high-fidelity 3-Reel Slot Machine game built with **Unity (C#)** and
 
 ## 🎮 Playable WebGL Build
 
-The repository includes a standalone, zero-dependency WebGL build located in [`Build/WebGL/`](./Build/WebGL/).
+### 🌐 Live Online Demo (Play in Browser)
+👉 **[https://ritikrajora20072110-ship-it.github.io/unity-slot-machine-game/](https://ritikrajora20072110-ship-it.github.io/unity-slot-machine-game/)**
+
+The repository also includes a standalone, zero-dependency WebGL build located in [`Build/WebGL/`](./Build/WebGL/).
 
 ### Quick Run Instructions
 
